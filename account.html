@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yappy - My Account</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f4f9; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; }
+        label { font-weight: bold; display: block; margin-top: 15px; font-size: 14px; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 20px; }
+        button:hover { background: #218838; }
+        .logout { background: #dc3545; margin-top: 10px; }
+        .logout:hover { background: #c82333; }
+        #status-msg { margin-top: 15px; font-size: 14px; color: #28a745; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Yappy Profile</h2>
+        <p>Logged in as: <span id="user-email">Loading...</span></p>
+
+        <label>Native Language</label>
+        <select id="native-lang">
+            <option value="English">English</option>
+            <option value="Spanish">Spanish</option>
+            <option value="French">French</option>
+            <option value="German">German</option>
+        </select>
+
+        <label>Target Language (I want to learn)</label>
+        <select id="target-lang">
+            <option value="Spanish">Spanish</option>
+            <option value="French">French</option>
+            <option value="English">English</option>
+            <option value="German">German</option>
+        </select>
+
+        <label>Current Level</label>
+        <select id="level">
+            <option value="Beginner (A1-A2)">Beginner (A1-A2)</option>
+            <option value="Intermediate (B1-B2)">Intermediate (B1-B2)</option>
+            <option value="Advanced (C1-C2)">Advanced (C1-C2)</option>
+        </select>
+
+        <label>Link Telegram ID (Send /id to bot to get this)</label>
+        <input type="text" id="telegram-id" placeholder="e.g., 987654321">
+
+        <button id="save-btn">Save Profile</button>
+        <button id="logout-btn" class="logout">Log Out</button>
+
+        <div id="status-msg"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBNZAuwji2ljbvxhCSoq5hF68hvelXquxA",
+            authDomain: "yappy-78350.firebaseapp.com",
+            projectId: "yappy-78350",
+            storageBucket: "yappy-78350.firebasestorage.app",
+            messagingSenderId: "30358653430",
+            appId: "1:30358653430:web:29eab498d06b8ebabe9fd7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let currentUserId = null;
+
+        // Check Auth State
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = "index.html"; // Redirect if not logged in
+            } else {
+                currentUserId = user.uid;
+                document.getElementById("user-email").innerText = user.email;
+                
+                // Fetch existing profile data
+                const docRef = doc(db, "users", currentUserId);
+                const docSnap = await getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if(data.native_language) document.getElementById("native-lang").value = data.native_language;
+                    if(data.target_language) document.getElementById("target-lang").value = data.target_language;
+                    if(data.level) document.getElementById("level").value = data.level;
+                    if(data.telegram_id) document.getElementById("telegram-id").value = data.telegram_id;
+                }
+            }
+        });
+
+        // Save Data to Firestore
+        document.getElementById("save-btn").addEventListener("click", async () => {
+            if(!currentUserId) return;
+            
+            const btn = document.getElementById("save-btn");
+            btn.innerText = "Saving...";
+
+            const profileData = {
+                native_language: document.getElementById("native-lang").value,
+                target_language: document.getElementById("target-lang").value,
+                level: document.getElementById("level").value,
+                telegram_id: parseInt(document.getElementById("telegram-id").value) || null,
+            };
+
+            // setDoc with merge:true updates existing fields or creates the doc if it doesn't exist
+            await setDoc(doc(db, "users", currentUserId), profileData, { merge: true });
+
+            btn.innerText = "Save Profile";
+            document.getElementById("status-msg").innerText = "Profile updated successfully!";
+            setTimeout(() => document.getElementById("status-msg").innerText = "", 3000);
+        });
+
+        // Logout
+        document.getElementById("logout-btn").addEventListener("click", () => {
+            signOut(auth);
+        });
+    </script>
+</body>
+</html>
