@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yappy - Login</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 320px; text-align: center; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 10px;}
+        button:hover { background: #0056b3; }
+        .toggle { color: #007bff; cursor: pointer; margin-top: 15px; font-size: 14px; text-decoration: underline;}
+        #error-msg { color: red; font-size: 14px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2 id="form-title">Log In to Yappy</h2>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button id="auth-btn">Log In</button>
+        <div id="error-msg"></div>
+        <div class="toggle" id="toggle-mode">Don't have an account? Sign Up</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBNZAuwji2ljbvxhCSoq5hF68hvelXquxA",
+            authDomain: "yappy-78350.firebaseapp.com",
+            projectId: "yappy-78350",
+            storageBucket: "yappy-78350.firebasestorage.app",
+            messagingSenderId: "30358653430",
+            appId: "1:30358653430:web:29eab498d06b8ebabe9fd7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Redirect if already logged in
+        onAuthStateChanged(auth, (user) => {
+            if (user) window.location.href = "account.html";
+        });
+
+        let isLoginMode = true;
+        
+        document.getElementById("toggle-mode").addEventListener("click", () => {
+            isLoginMode = !isLoginMode;
+            document.getElementById("form-title").innerText = isLoginMode ? "Log In to Yappy" : "Create Account";
+            document.getElementById("auth-btn").innerText = isLoginMode ? "Log In" : "Sign Up";
+            document.getElementById("toggle-mode").innerText = isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Log In";
+        });
+
+        document.getElementById("auth-btn").addEventListener("click", () => {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const errorMsg = document.getElementById("error-msg");
+
+            if(isLoginMode) {
+                signInWithEmailAndPassword(auth, email, password)
+                    .catch(error => errorMsg.innerText = error.message);
+            } else {
+                createUserWithEmailAndPassword(auth, email, password)
+                    .catch(error => errorMsg.innerText = error.message);
+            }
+        });
+    </script>
+</body>
+</html>
