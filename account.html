@@ -23,30 +23,46 @@
         <h2>Yappy Profile</h2>
         <p>Logged in as: <span id="user-email">Loading...</span></p>
 
-        <label>Native Language</label>
+        <label for="native-lang">Native Language</label>
         <select id="native-lang">
             <option value="English">English</option>
-            <option value="Spanish">Spanish</option>
+            <option value="Mandarin">Mandarin</option>
             <option value="French">French</option>
+            <option value="Spanish">Spanish</option>
+            <option value="Korean">Korean</option>
+            <option value="Cantonese">Cantonese</option>
+            <option value="Portuguese">Portuguese</option>
+            <option value="Arabic">Arabic</option>
+            <option value="Dutch">Dutch</option>
             <option value="German">German</option>
         </select>
 
-        <label>Target Language (I want to learn)</label>
+        <label for="target-lang">Target Language (I want to learn)</label>
         <select id="target-lang">
+            <option value="English">English</option>
+            <option value="Mandarin">Mandarin</option>
             <option value="Spanish">Spanish</option>
             <option value="French">French</option>
-            <option value="English">English</option>
-            <option value="German">German</option>
         </select>
 
-        <label>Current Level</label>
-        <select id="level">
-            <option value="Beginner (A1-A2)">Beginner (A1-A2)</option>
-            <option value="Intermediate (B1-B2)">Intermediate (B1-B2)</option>
-            <option value="Advanced (C1-C2)">Advanced (C1-C2)</option>
+        <label for="industry">Industry</label>
+        <select id="industry">
+            <option value="IT">IT</option>
+            <option value="Financials">Financials</option>
+            <option value="Healthcare">Healthcare</option>
+            <option value="Consumer">Consumer</option>
+            <option value="Industrials">Industrials</option>
+            <option value="Energy">Energy</option>
+            <option value="Real Estate">Real Estate</option>
+            <option value="Materials">Materials</option>
+            <option value="Teaching">Teaching</option>
+            <option value="Hospitality">Hospitality</option>
         </select>
 
-        <label>Link Telegram ID (Send /id to bot to get this)</label>
+        <label for="profession">Profession / Specialty</label>
+        <input type="text" id="profession" maxlength="50" placeholder="e.g., Full Stack Engineer, Nurse (max 50 chars)">
+
+        <label for="telegram-id">Link Telegram ID (Send /id to bot to get this)</label>
         <input type="text" id="telegram-id" placeholder="e.g., 987654321">
 
         <button id="save-btn">Save Profile</button>
@@ -88,17 +104,18 @@
                 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    if(data.native_language) document.getElementById("native-lang").value = data.native_language;
-                    if(data.target_language) document.getElementById("target-lang").value = data.target_language;
-                    if(data.level) document.getElementById("level").value = data.level;
-                    if(data.telegram_id) document.getElementById("telegram-id").value = data.telegram_id;
+                    if (data.native_language) document.getElementById("native-lang").value = data.native_language;
+                    if (data.target_language) document.getElementById("target-lang").value = data.target_language;
+                    if (data.industry) document.getElementById("industry").value = data.industry;
+                    if (data.profession) document.getElementById("profession").value = data.profession;
+                    if (data.telegram_id) document.getElementById("telegram-id").value = data.telegram_id;
                 }
             }
         });
 
         // Save Data to Firestore
         document.getElementById("save-btn").addEventListener("click", async () => {
-            if(!currentUserId) return;
+            if (!currentUserId) return;
             
             const btn = document.getElementById("save-btn");
             btn.innerText = "Saving...";
@@ -106,11 +123,12 @@
             const profileData = {
                 native_language: document.getElementById("native-lang").value,
                 target_language: document.getElementById("target-lang").value,
-                level: document.getElementById("level").value,
+                industry: document.getElementById("industry").value,
+                profession: document.getElementById("profession").value.trim(),
                 telegram_id: parseInt(document.getElementById("telegram-id").value) || null,
             };
 
-            // setDoc with merge:true updates existing fields or creates the doc if it doesn't exist
+            // setDoc with merge:true updates existing fields without overwriting 'level' or creating missing fields
             await setDoc(doc(db, "users", currentUserId), profileData, { merge: true });
 
             btn.innerText = "Save Profile";
