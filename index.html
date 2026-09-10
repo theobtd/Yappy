@@ -7,9 +7,10 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 320px; text-align: center; }
-        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 10px;}
         button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
         .toggle { color: #007bff; cursor: pointer; margin-top: 15px; font-size: 14px; text-decoration: underline;}
         #error-msg { color: red; font-size: 14px; margin-top: 10px; }
     </style>
@@ -28,6 +29,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBNZAuwji2ljbvxhCSoq5hF68hvelXquxA",
@@ -40,14 +42,18 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-
-        // Redirect if already logged in
-        onAuthStateChanged(auth, (user) => {
-            if (user) window.location.href = "account.html";
-        });
+        const db = getFirestore(app);
 
         let isLoginMode = true;
+        let formSubmitted = false; // Prevents premature redirect before Firestore write finishes
         
+        // Redirect if already logged in (when visiting the page initially)
+        onAuthStateChanged(auth, (user) => {
+            if (user && !formSubmitted) {
+                window.location.href = "account.html";
+            }
+        });
+
         document.getElementById("toggle-mode").addEventListener("click", () => {
             isLoginMode = !isLoginMode;
             document.getElementById("form-title").innerText = isLoginMode ? "Log In to Yappy" : "Create Account";
@@ -55,17 +61,42 @@
             document.getElementById("toggle-mode").innerText = isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Log In";
         });
 
-        document.getElementById("auth-btn").addEventListener("click", () => {
+        document.getElementById("auth-btn").addEventListener("click", async () => {
             const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
             const errorMsg = document.getElementById("error-msg");
+            const btn = document.getElementById("auth-btn");
 
-            if(isLoginMode) {
-                signInWithEmailAndPassword(auth, email, password)
-                    .catch(error => errorMsg.innerText = error.message);
-            } else {
-                createUserWithEmailAndPassword(auth, email, password)
-                    .catch(error => errorMsg.innerText = error.message);
+            if (!email || !password) {
+                errorMsg.innerText = "Please enter an email and password.";
+                return;
+            }
+
+            formSubmitted = true;
+            btn.disabled = true;
+            btn.innerText = "Please wait...";
+            errorMsg.innerText = "";
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    window.location.href = "account.html";
+                } else {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+                    
+                    // Automatically set level to professional on sign up
+                    await setDoc(doc(db, "users", user.uid), {
+                        level: "professional"
+                    }, { merge: true });
+
+                    window.location.href = "account.html";
+                }
+            } catch (error) {
+                errorMsg.innerText = error.message;
+                formSubmitted = false;
+                btn.disabled = false;
+                btn.innerText = isLoginMode ? "Log In" : "Sign Up";
             }
         });
     </script>
